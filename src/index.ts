@@ -30,11 +30,12 @@ const DEFAULT_OPTIONS = {
 export class JSite extends EventEmitter {
     options: Options = DEFAULT_OPTIONS;
     custom: Generic.Object = {};
-    modules: Module[] = [router, server, mysql];
+    modules: Module[] = [];
 
     constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
+        this.use(router, server, mysql);
         this.setOptions(options);
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
@@ -135,7 +136,26 @@ export class JSite extends EventEmitter {
 
     reload() {
         this.removeAllListeners();
-        this.modules.forEach(module => module(this));
+
+        let modules: {
+            [category: string]: Module;
+        } = {};
+
+        /**
+         * last module gets priority, could be modified to be first
+         *
+         * @todo review after implementing data-driven modules
+         */
+        this.modules.forEach(module => {
+            let category = module().category;
+            if (category) {
+                modules[category] = module;
+            } else {
+                module(this);
+            }
+        });
+        Object.values(modules).forEach(module => module(this));
+
         this.sendEmit("jsite:reload");
 
         return this;
