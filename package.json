@@ -4,7 +4,7 @@
         "clean": "tsc && node dist/src/clean",
         "build": "npm run clean && tsc",
         "test": "npm run build && mocha dist/src/test --reporter min",
-        "git": "npm run test && npm run clean"
+        "git": "npm run clean"
     },
     "devDependencies": {
         "@types/node": "^14.0.26",
