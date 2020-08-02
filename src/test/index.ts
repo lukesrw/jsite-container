@@ -1,1 +1,3 @@
-// package tests
+import { JSite } from "../";
+
+new JSite().start();
