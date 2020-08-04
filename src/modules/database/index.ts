@@ -27,6 +27,7 @@ export function mysql(jsite?: JSite): ModuleInfo {
     }
 
     return {
+        category: "Database",
         name: "JSite MySQL"
     };
 }
@@ -43,6 +44,7 @@ export function sqlite(jsite?: JSite): ModuleInfo {
     }
 
     return {
+        category: "Database",
         name: "JSite SQLite"
     };
 }
