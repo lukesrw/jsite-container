@@ -17,11 +17,14 @@ import { Options } from "./interfaces/jsite";
 import { server } from "./modules/server/index";
 import { router } from "./modules/routes/index";
 import { mysql } from "./modules/database/index";
+import { logger } from "./modules/logger/index";
 import { getAbs } from "./lib/abs";
+import { EmitPromises } from "./types/jsite";
 
 /**
  * Constants
  */
+const UNIQUE_CATEGORIES: string[] = [];
 const DEFAULT_MAX_LISTENERS = 100;
 const DEFAULT_OPTIONS = {
     abs: getAbs()
@@ -35,7 +38,7 @@ export class JSite extends EventEmitter {
     constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
-        this.use(router, server, mysql);
+        this.use(router, server, mysql, logger);
         this.setOptions(options);
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
@@ -66,10 +69,10 @@ export class JSite extends EventEmitter {
         return this;
     }
 
-    async sendEmit<EmitData>(event: string, data?: EmitData): Promise<EmitData> {
+    async sendEmit(event: string, data: any = {}): Promise<any> {
         let fingerprints: string[] = [];
         let promises_loop = true;
-        let promises: ((data: EmitData, fingerprints: string[]) => Promise<boolean>)[] = [];
+        let promises: EmitPromises = [];
         let results: PromiseSettledResult[];
 
         /**
@@ -100,20 +103,14 @@ export class JSite extends EventEmitter {
              *
              * @todo consider updating
              */
-            results = await Promise.allSettled(promises.map(func => func(data || ({} as EmitData), fingerprints)));
+            results = await Promise.allSettled(promises.map(func => func(data, fingerprints)));
 
             promises_loop = false;
             promises = promises.filter((_1, promises_i) => {
                 switch (results[promises_i].status) {
                     case "rejected":
                         if (results[promises_i].reason) {
-                            /**
-                             * Listener threw an exception from this emit, but we don't know what it was
-                             * Needs to be logged somewhere, database ideally, otherwise log file (or both)
-                             *
-                             * @todo error handling
-                             */
-                            console.log(results[promises_i].reason);
+                            this.sendEmit("logger:error", results[promises_i].reason);
                         }
                         break;
 
@@ -131,7 +128,7 @@ export class JSite extends EventEmitter {
             });
         }
 
-        return data || ({} as EmitData);
+        return data;
     }
 
     reload() {
@@ -147,14 +144,24 @@ export class JSite extends EventEmitter {
          * @todo review after implementing data-driven modules
          */
         this.modules.forEach(module => {
-            let category = module().category;
-            if (category) {
+            let category = (module().category || "").toLowerCase();
+            if (category && UNIQUE_CATEGORIES.includes(category)) {
                 modules[category] = module;
             } else {
-                module(this);
+                try {
+                    module(this);
+                } catch (error) {
+                    this.sendEmit("logger:error", error);
+                }
             }
         });
-        Object.values(modules).forEach(module => module(this));
+        Object.values(modules).forEach(module => {
+            try {
+                module(this);
+            } catch (error) {
+                this.sendEmit("logger:error", error);
+            }
+        });
 
         this.sendEmit("jsite:reload");
 
