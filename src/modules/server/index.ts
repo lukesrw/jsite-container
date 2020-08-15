@@ -1,7 +1,7 @@
 /**
  * Node.js modules
  */
-import { createServer, ServerResponse, IncomingMessage } from "http";
+import { createServer, ServerResponse } from "http";
 import * as zlib from "zlib";
 
 /**
@@ -14,7 +14,7 @@ import { request as parseRequest, url as parseURL } from "jsite-parse";
 /**
  * Interfaces
  */
-import { IncomingMessageData, RequestResponse } from "../../interfaces/net";
+import { RequestResponse } from "../../interfaces/net";
 import { ModuleInfo } from "../../interfaces/module";
 import { Url } from "url";
 import { Readable } from "stream";
@@ -25,9 +25,9 @@ export function server(jsite?: JSite): ModuleInfo {
             promises.push(async () => {
                 jsite.custom.server = createServer();
 
-                jsite.custom.server.on("request", async (request: IncomingMessageData, response: ServerResponse) => {
+                jsite.custom.server.on("request", async (request: any, response: ServerResponse) => {
                     try {
-                        request.data = await parseRequest(request as IncomingMessage);
+                        request.data = await parseRequest(request);
                     } catch (error) {
                         console.log(error);
 
@@ -48,8 +48,12 @@ export function server(jsite?: JSite): ModuleInfo {
                     };
 
                     handle.request.url = (await parseURL(request.url)) as Url;
+                    handle.request.origin = handle.request.url;
 
                     handle = await jsite.sendEmit("server:request", handle);
+                    if (handle.response.status === "NOT_FOUND") {
+                        handle = await jsite.sendEmit("server:index", handle);
+                    }
 
                     if (!Object.prototype.hasOwnProperty.call(status, handle.response.status)) {
                         throw new Error(`Unsupported Status: ${handle.response.status}`);
