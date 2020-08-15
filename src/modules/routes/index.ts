@@ -16,18 +16,131 @@ const { lookup } = require("mime-types");
  */
 import { ModuleInfo } from "../../interfaces/module";
 import { RequestResponse } from "../../interfaces/net";
+import { Rule } from "./interfaces";
 
 /**
  * Constants
  */
 const INDEX_FILES = ["index.js", "index.html"];
 
+function getFile(jsite: JSite, handle: any) {
+    handle.request.url.pathname = handle.request.url.pathname || "/";
+
+    return join(jsite.options.abs, "public", ...handle.request.url.pathname.split("/"));
+}
+
+export function index(jsite?: JSite): ModuleInfo {
+    if (jsite) {
+        jsite.on("server:index", promises => {
+            promises.push(
+                async (handle: RequestResponse): Promise<RequestResponse> => {
+                    handle.request.url.pathname = handle.request.url.pathname || "/";
+                    handle.request.origin.pathname = handle.request.origin.pathname || "/";
+
+                    let file = getFile(jsite, handle);
+                    let stats;
+                    let target;
+                    let diff = handle.request.origin.pathname
+                        .split("/")
+                        .filter(value => value)
+                        .slice(handle.request.url.pathname.split("/").filter(value => value).length)
+                        .join("/");
+
+                    try {
+                        stats = await fs.stat(file);
+                    } catch (ignore) {}
+
+                    try {
+                        if (stats) {
+                            if (stats.isFile()) {
+                                if (file.endsWith(".json")) {
+                                    target = file;
+                                }
+                            } else if (stats.isDirectory()) {
+                                let files = await fs.readdir(file);
+
+                                if (files.includes("index.json")) {
+                                    target = join(
+                                        jsite.options.abs,
+                                        "public",
+                                        ...handle.request.url.pathname.split("/"),
+                                        "index.json"
+                                    );
+                                }
+                            }
+                        }
+
+                        if (target) {
+                            target = JSON.parse(await fs.readFile(target, "utf-8")) as Rule[];
+
+                            if (
+                                target.some(rule => {
+                                    handle.request.origin.pathname = handle.request.origin.pathname || "/";
+
+                                    if (Object.prototype.hasOwnProperty.call(rule, "regex") && rule.regex) {
+                                        rule.regex = new RegExp(rule.regex, rule.flags || "u");
+                                        rule.matches = [...diff.matchAll(rule.regex)];
+
+                                        if (rule.regex.test(diff)) {
+                                            target = [rule];
+
+                                            return true;
+                                        }
+                                    }
+
+                                    return false;
+                                })
+                            ) {
+                                if (!target[0].file.startsWith("/")) {
+                                    target[0].file = `${handle.request.url.pathname}/${target[0].file}`.replace(
+                                        /\/+/gu,
+                                        "/"
+                                    );
+                                }
+
+                                handle.request.url = await parseURL(target[0].file);
+                                handle.request.data.get = Object.assign(handle.request.data.get, target[0].matches);
+
+                                return await jsite.sendEmit("server:request", handle);
+                            }
+                        }
+
+                        if (handle.request.url.pathname !== "/") {
+                            handle.request.url = await parseURL(
+                                `/${handle.request.url.pathname
+                                    .split("/")
+                                    .reverse()
+                                    .filter(value => value)
+                                    .slice(1)
+                                    .reverse()
+                                    .join("/")}`
+                            );
+
+                            return await jsite.sendEmit("server:index", handle);
+                        }
+                    } catch (error) {
+                        console.log(error);
+                    }
+
+                    return handle;
+                }
+            );
+        });
+    }
+
+    return {
+        name: "Index"
+    };
+}
+
 export function router(jsite?: JSite): ModuleInfo {
     if (jsite) {
         jsite.on("server:request", promises => {
             promises.push(
-                async (handle: any): Promise<RequestResponse> => {
-                    let file = join(jsite.options.abs, "public", ...handle.request.url.pathname.split("/"));
+                async (handle: RequestResponse): Promise<RequestResponse> => {
+                    let file = getFile(jsite, handle);
+
+                    handle.request.url.pathname = handle.request.url.pathname || "/";
 
                     try {
                         let stats = await fs.stat(file);
@@ -46,9 +159,7 @@ export function router(jsite?: JSite): ModuleInfo {
 
                                 return await jsite.sendEmit("server:request", handle);
                             }
-                        }
-
-                        if (stats.isFile()) {
+                        } else if (stats.isFile()) {
                             let handle_custom: any;
                             if (file.endsWith(".js")) {
                                 try {
