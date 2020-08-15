@@ -16,10 +16,11 @@ export interface IncomingMessageData
     extends Modify<
         IncomingMessage,
         {
-            url?: string | Url;
+            url: Url;
+            origin: Url;
         }
     > {
-    data?: {
+    data: {
         [method: string]: Generic.Object;
         get: Generic.Object;
         files?: any;
