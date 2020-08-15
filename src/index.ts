@@ -15,7 +15,7 @@ import { Options } from "./interfaces/jsite";
  * JSite modules
  */
 import { server } from "./modules/server/index";
-import { router } from "./modules/routes/index";
+import { router, index } from "./modules/routes/index";
 import { mysql } from "./modules/database/index";
 import { logger } from "./modules/logger/index";
 import { getAbs } from "./lib/abs";
@@ -38,7 +38,7 @@ export class JSite extends EventEmitter {
     constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
-        this.use(router, server, mysql, logger);
+        this.use(router, server, mysql, logger, index);
         this.setOptions(options);
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
