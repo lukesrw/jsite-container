@@ -174,4 +174,12 @@ export class JSite extends EventEmitter {
 
         return this;
     }
+
+    clearRequireCache() {
+        for (const file in require.cache) {
+            if (Object.prototype.hasOwnProperty.call(require.cache, file) && file.startsWith(this.options.abs)) {
+                delete require.cache[require.resolve(file)];
+            }
+        }
+    }
 }
