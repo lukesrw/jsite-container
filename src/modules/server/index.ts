@@ -39,10 +39,11 @@ export function server(jsite?: JSite): ModuleInfo {
                     let handle: RequestResponse = {
                         request,
                         response: {
-                            data: "<h1>404</h1>",
+                            data: "",
                             headers: {
                                 "Content-Type": "text/html"
                             },
+                            route: [],
                             status: "NOT_FOUND"
                         }
                     };
@@ -51,12 +52,18 @@ export function server(jsite?: JSite): ModuleInfo {
                     handle.request.origin = handle.request.url;
 
                     handle = await jsite.sendEmit("server:request", handle);
-                    if (handle.response.status === "NOT_FOUND") {
-                        handle = await jsite.sendEmit("server:index", handle);
-                    }
 
                     if (!Object.prototype.hasOwnProperty.call(status, handle.response.status)) {
                         throw new Error(`Unsupported Status: ${handle.response.status}`);
+                    }
+                    if (
+                        handle.response.status !== "OK" &&
+                        typeof handle.response.data === "string" &&
+                        handle.response.data.length === 0
+                    ) {
+                        handle.response.data = `<h1>${
+                            status[status[handle.response.status] as keyof typeof status]
+                        }</h1>`;
                     }
                     if (typeof handle.response.data !== "string" && typeof handle.response.data.pipe !== "function") {
                         handle.response.data = JSON.stringify(handle.response.data);
