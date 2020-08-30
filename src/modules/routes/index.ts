@@ -26,7 +26,7 @@ const INDEX_FILES = ["index.js", "index.html"];
 function getFile(jsite: JSite, handle: any) {
     handle.request.url.pathname = handle.request.url.pathname || "/";
 
-    return join(jsite.options.abs, "public", ...handle.request.url.pathname.split("/"));
+    return join(jsite.options.abs, "public", ...handle.request.url.pathname.split("/")).replace(/\\/gu, "/");
 }
 
 export function index(jsite?: JSite): ModuleInfo {
@@ -38,13 +38,17 @@ export function index(jsite?: JSite): ModuleInfo {
                     handle.request.origin.pathname = handle.request.origin.pathname || "/";
 
                     let file = getFile(jsite, handle);
+
                     let stats;
-                    let target;
-                    let diff = handle.request.origin.pathname
-                        .split("/")
-                        .filter(value => value)
-                        .slice(handle.request.url.pathname.split("/").filter(value => value).length)
-                        .join("/");
+                    let target: string | false = false;
+                    let rules: Rule[];
+                    let diff = decodeURIComponent(
+                        handle.request.origin.pathname
+                            .split("/")
+                            .filter(value => value)
+                            .slice(handle.request.url.pathname.split("/").filter(value => value).length)
+                            .join("/")
+                    );
 
                     try {
                         stats = await fs.stat(file);
@@ -71,18 +75,19 @@ export function index(jsite?: JSite): ModuleInfo {
                         }
 
                         if (target) {
-                            target = JSON.parse(await fs.readFile(target, "utf-8")) as Rule[];
+                            rules = JSON.parse(await fs.readFile(target, "utf-8"));
 
                             if (
-                                target.some(rule => {
+                                rules.some(rule => {
                                     handle.request.origin.pathname = handle.request.origin.pathname || "/";
 
                                     if (Object.prototype.hasOwnProperty.call(rule, "regex") && rule.regex) {
                                         rule.regex = new RegExp(rule.regex, rule.flags || "u");
-                                        rule.matches = [...diff.matchAll(rule.regex)];
 
                                         if (rule.regex.test(diff)) {
-                                            target = [rule];
+                                            rule.matches = [...diff.matchAll(rule.regex)];
+                                            rule.matches[0].groups = rule.matches[0].groups || {};
+                                            rules = [rule];
 
                                             return true;
                                         }
@@ -91,15 +96,29 @@ export function index(jsite?: JSite): ModuleInfo {
                                     return false;
                                 })
                             ) {
-                                if (!target[0].file.startsWith("/")) {
-                                    target[0].file = `${handle.request.url.pathname}/${target[0].file}`.replace(
+                                if (!rules[0].file.startsWith("/")) {
+                                    rules[0].file = `${handle.request.url.pathname}/${rules[0].file}`.replace(
                                         /\/+/gu,
                                         "/"
                                     );
                                 }
+                                rules[0].matches[0].groups = rules[0].matches[0].groups || {};
 
-                                handle.request.url = await parseURL(target[0].file);
-                                handle.request.data.get = Object.assign(handle.request.data.get, target[0].matches);
+                                for (const key in rules[0].matches[0].groups) {
+                                    if (Object.prototype.hasOwnProperty.call(rules[0].matches[0].groups, key)) {
+                                        rules[0].file = rules[0].file.replace(
+                                            new RegExp(`<${key}>`, "gu"),
+                                            rules[0].matches[0].groups[key]
+                                        );
+                                    }
+                                }
+
+                                handle.request.url = await parseURL(rules[0].file);
+
+                                handle.request.data.get = Object.assign(
+                                    handle.request.data.get,
+                                    rules[0].matches[0].groups
+                                );
 
                                 return await jsite.sendEmit("server:request", handle);
                             }
@@ -139,6 +158,12 @@ export function router(jsite?: JSite): ModuleInfo {
             promises.push(
                 async (handle: RequestResponse): Promise<RequestResponse> => {
                     let file = getFile(jsite, handle);
+                    if (handle.response.route.includes(file)) {
+                        handle.response.status = "LOOP_DETECTED";
+
+                        return handle;
+                    }
+                    handle.response.route.push(file);
 
                     handle.request.url.pathname = handle.request.url.pathname || "/";
 
@@ -161,14 +186,19 @@ export function router(jsite?: JSite): ModuleInfo {
                             }
                         } else if (stats.isFile()) {
                             let handle_custom: any;
+
+                            if (file.endsWith("/index.json")) {
+                                handle.response.status = "FORBIDDEN";
+
+                                return handle;
+                            }
+
                             if (file.endsWith(".js")) {
                                 try {
-                                    delete require.cache[require.resolve(file)];
+                                    jsite.clearRequireCache();
                                     handle_custom = require(file);
                                 } catch (ignore) {}
                             }
-
-                            handle.response.status = "OK";
 
                             if (
                                 typeof handle_custom === "undefined" ||
@@ -177,6 +207,7 @@ export function router(jsite?: JSite): ModuleInfo {
                                 handle.response.data = createReadStream(file);
                                 handle.response.headers["Content-Type"] = lookup(file);
                                 handle.response.headers["Content-Length"] = stats.size;
+                                handle.response.status = "OK";
                             } else {
                                 try {
                                     if (typeof handle_custom === "function") {
@@ -189,6 +220,10 @@ export function router(jsite?: JSite): ModuleInfo {
                                         };
                                     }
 
+                                    if (Object.prototype.hasOwnProperty.call(handle_custom, "data")) {
+                                        handle.response.status = "OK";
+                                    }
+
                                     handle.response = Object.assign(handle.response, handle_custom);
                                 } catch (error) {
                                     console.error(error);
@@ -199,6 +234,10 @@ export function router(jsite?: JSite): ModuleInfo {
                             }
                         }
                     } catch (ignore) {}
+
+                    if (handle.response.status === "NOT_FOUND") {
+                        handle = await jsite.sendEmit("server:index", handle);
+                    }
 
                     return handle;
                 }
