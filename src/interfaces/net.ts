@@ -33,5 +33,6 @@ export interface RequestResponse {
         data: string | Readable;
         headers: OutgoingHttpHeaders;
         status: keyof typeof status;
+        route: string[];
     };
 }
