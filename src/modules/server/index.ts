@@ -19,6 +19,22 @@ import { ModuleInfo } from "../../interfaces/module";
 import { Url } from "url";
 import { Readable } from "stream";
 
+const DEFAULT_RESPONSE_DATA = `<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+
+        <style>
+            html,
+            body {
+                font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
+                margin: 20px 23px;
+            }
+        </style>
+    </head>
+    <body>
+        `;
+
 export function server(jsite?: JSite): ModuleInfo {
     if (jsite) {
         jsite.on("jsite:start", promises => {
@@ -39,7 +55,7 @@ export function server(jsite?: JSite): ModuleInfo {
                     let handle: RequestResponse = {
                         request,
                         response: {
-                            data: "",
+                            data: DEFAULT_RESPONSE_DATA,
                             headers: {
                                 "Content-Type": "text/html"
                             },
@@ -56,14 +72,12 @@ export function server(jsite?: JSite): ModuleInfo {
                     if (!Object.prototype.hasOwnProperty.call(status, handle.response.status)) {
                         throw new Error(`Unsupported Status: ${handle.response.status}`);
                     }
-                    if (
-                        handle.response.status !== "OK" &&
-                        typeof handle.response.data === "string" &&
-                        handle.response.data.length === 0
-                    ) {
-                        handle.response.data = `<h1>${
+                    if (handle.response.status !== "OK" && handle.response.data === DEFAULT_RESPONSE_DATA) {
+                        handle.response.data += `<h1>${
                             status[status[handle.response.status] as keyof typeof status]
-                        }</h1>`;
+                        }</h1>
+    </body>
+</html>`;
                     }
                     if (typeof handle.response.data !== "string" && typeof handle.response.data.pipe !== "function") {
                         handle.response.data = JSON.stringify(handle.response.data);
