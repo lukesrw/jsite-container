@@ -73,7 +73,7 @@ export function server(jsite?: JSite): ModuleInfo {
                         throw new Error(`Unsupported Status: ${handle.response.status}`);
                     }
                     if (handle.response.status !== "OK" && handle.response.data === DEFAULT_RESPONSE_DATA) {
-                        handle.response.data += `<h1>${
+                        handle.response.data += `<h1>${status[handle.response.status]} - ${
                             status[status[handle.response.status] as keyof typeof status]
                         }</h1>
     </body>
@@ -111,6 +111,14 @@ export function server(jsite?: JSite): ModuleInfo {
                         }
                     }
                     /**/
+                    if (status[handle.response.status] >= status.BAD_REQUEST) {
+                        jsite.sendEmit(
+                            `logger:${
+                                status[handle.response.status] >= status.INTERNAL_SERVER_ERROR ? "error" : "warning"
+                            }`,
+                            `${handle.response.status} @ ${handle.request.origin.pathname}`
+                        );
+                    }
 
                     response.writeHead(status[handle.response.status] as number, handle.response.headers);
                     if (compression && typeof zlib[compression] === "function") {
