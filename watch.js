@@ -10,14 +10,16 @@ let events = {
     "change ^src.+.ts$": "tsc"
 };
 
-exec("npm run watch-start --if-present", (error, stdout, stderr) => {
+exec(`chdir /D ${__dirname} && npm run watch-start --if-present`, (error, stdout, stderr) => {
     if (error || stderr) {
         console.log(`${error || stderr} @ ${new Date()}`);
     }
 
     console.log(`Watching ${TARGET} @ ${new Date()}`);
 
-    exec("npm run watch-after-start --if-present").stdout.on("data", chunk => console.log(chunk.trim()));
+    exec(`chdir /D ${__dirname} && npm run watch-after-start --if-present`).stdout.on("data", chunk => {
+        console.log(chunk.trim());
+    });
 
     watch(
         TARGET,
@@ -42,7 +44,7 @@ exec("npm run watch-start --if-present", (error, stdout, stderr) => {
 
                 console.log(`Executing '${events[pattern]}' @ ${new Date()}`);
 
-                exec(events[pattern], (error, stdout, stderr) => {
+                exec(`chdir /D ${__dirname} && ${events[pattern]}`, (error, stdout, stderr) => {
                     if (error || stderr) {
                         console.log(`${error || stderr} @ ${new Date()}`);
                     } else {
@@ -60,7 +62,7 @@ exec("npm run watch-start --if-present", (error, stdout, stderr) => {
 
 process.on("SIGINT", () => {
     try {
-        execSync("npm run watch-end --if-present");
+        execSync(`chdir /D ${__dirname} && npm run watch-end --if-present`);
     } catch (ignore) {}
 
     process.exit(); // eslint-disable-line
