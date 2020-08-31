@@ -64,6 +64,12 @@ export function logger(jsite?: JSite): ModuleInfo {
                 await write(join(jsite.options.abs, "logs"), "error.md", error, "Error");
             });
         });
+
+        jsite.on("logger:warning", chain => {
+            chain.push(async (error: any) => {
+                await write(join(jsite.options.abs, "logs"), "warning.md", error, "Error");
+            });
+        });
     }
 
     return {
