@@ -26,8 +26,9 @@ import { EmitPromises } from "./types/jsite";
  */
 const UNIQUE_CATEGORIES: string[] = [];
 const DEFAULT_MAX_LISTENERS = 100;
-const DEFAULT_OPTIONS = {
-    abs: getAbs()
+const DEFAULT_OPTIONS: Options = {
+    abs: getAbs(),
+    production: true
 };
 
 export class JSite extends EventEmitter {
