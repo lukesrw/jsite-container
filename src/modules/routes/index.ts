@@ -38,6 +38,7 @@ export function index(jsite?: JSite): ModuleInfo {
                     handle.request.origin.pathname = handle.request.origin.pathname || "/";
 
                     let file = getFile(jsite, handle);
+                    handle.response.route.push(`${file}/index.json`);
 
                     let stats;
                     let target: string | false = false;
@@ -96,6 +97,8 @@ export function index(jsite?: JSite): ModuleInfo {
                                     return false;
                                 })
                             ) {
+                                handle.response.route[handle.response.route.length - 1] += " (!)";
+
                                 if (!rules[0].file.startsWith("/")) {
                                     rules[0].file = `${handle.request.url.pathname}/${rules[0].file}`.replace(
                                         /\/+/gu,
@@ -122,6 +125,8 @@ export function index(jsite?: JSite): ModuleInfo {
 
                                 return await jsite.sendEmit("server:request", handle);
                             }
+
+                            handle.response.route[handle.response.route.length - 1] += ` (.) (${diff})`;
                         }
 
                         if (handle.request.url.pathname !== "/") {
@@ -159,10 +164,29 @@ export function router(jsite?: JSite): ModuleInfo {
                 async (handle: RequestResponse): Promise<RequestResponse> => {
                     let file = getFile(jsite, handle);
                     if (handle.response.route.includes(file)) {
+                        let in_submenu = false;
+
                         handle.response.status = "LOOP_DETECTED";
+                        handle.response.data += "<h1>508 - Loop Detected</h1><ol>";
+                        handle.response.route.concat(file).forEach(part => {
+                            if (part === file) part = `<b>${part}</b>`;
+
+                            if (part.includes("/index.json")) {
+                                if (!in_submenu) {
+                                    handle.response.data += "<ol>";
+                                    in_submenu = true;
+                                }
+                            } else if (in_submenu) {
+                                in_submenu = false;
+                            }
+
+                            handle.response.data += `<li>${part}</li>`;
+                        });
+                        handle.response.data += "</ol>";
 
                         return handle;
                     }
+
                     handle.response.route.push(file);
 
                     handle.request.url.pathname = handle.request.url.pathname || "/";
@@ -229,7 +253,7 @@ export function router(jsite?: JSite): ModuleInfo {
                                     console.error(error);
 
                                     handle.response.status = "INTERNAL_SERVER_ERROR";
-                                    handle.response.data = error.message;
+                                    handle.response.data += error.message;
                                 }
                             }
                         }
