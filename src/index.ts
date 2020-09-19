@@ -15,9 +15,8 @@ import { Options } from "./interfaces/jsite";
  * JSite modules
  */
 import { server } from "./modules/server/index";
-import { router, index } from "./modules/routes/index";
-import { mysql } from "./modules/database/index";
-import { logger } from "./modules/logger/index";
+import { router } from "./modules/routes/index";
+import { modules } from "./modules/modules";
 import { getAbs } from "./lib/abs";
 import { EmitPromises } from "./types/jsite";
 
@@ -28,6 +27,7 @@ const UNIQUE_CATEGORIES: string[] = [];
 const DEFAULT_MAX_LISTENERS = 100;
 const DEFAULT_OPTIONS: Options = {
     abs: getAbs(),
+    modules: {},
     production: true
 };
 
@@ -39,7 +39,7 @@ export class JSite extends EventEmitter {
     constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
-        this.use(router, server, mysql, logger, index);
+        this.setModules(router, server, modules);
         this.setOptions(options);
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
@@ -54,13 +54,13 @@ export class JSite extends EventEmitter {
      * @param modules to load
      * @returns {this} for chaining
      */
-    use(...modules: Module[]) {
+    setModules(...modules: Module[]) {
         this.modules = [...new Set(modules)];
 
         return this;
     }
 
-    unuse(...modules: Module[]) {
+    unsetModules(...modules: Module[]) {
         modules.forEach(module => {
             if (this.modules.includes(module)) {
                 this.modules.splice(this.modules.indexOf(module), 1);
@@ -169,6 +169,7 @@ export class JSite extends EventEmitter {
 
     start() {
         this.reload();
+
         this.sendEmit("jsite:start");
 
         return this;
