@@ -132,6 +132,14 @@ export class JSite extends EventEmitter {
         return data;
     }
 
+    reloadModule(module: Module) {
+        try {
+            module(this);
+        } catch (error) {
+            this.sendEmit("logger:error", error);
+        }
+    }
+
     reload() {
         this.removeAllListeners();
 
@@ -149,20 +157,10 @@ export class JSite extends EventEmitter {
             if (category && UNIQUE_CATEGORIES.includes(category)) {
                 modules[category] = module;
             } else {
-                try {
-                    module(this);
-                } catch (error) {
-                    this.sendEmit("logger:error", error);
-                }
+                this.reloadModule(module);
             }
         });
-        Object.values(modules).forEach(module => {
-            try {
-                module(this);
-            } catch (error) {
-                this.sendEmit("logger:error", error);
-            }
-        });
+        Object.values(modules).forEach(module => this.reloadModule(module));
 
         this.sendEmit("jsite:reload");
 
