@@ -2,29 +2,100 @@ import { JSite } from "../..";
 import * as path from "path";
 import { ModuleInfo } from "../../interfaces/module";
 import * as Generic from "../../interfaces/generic";
+import { EmitPromises } from "../../types/jsite";
 
-interface QueryInterface extends Generic.Object {
-    callback: Function;
+interface QueryInterface {
+    sql: string;
+    param?: Generic.Object | any[];
+    callback?: Function;
+    complete?: Function;
+}
+
+const METHODS = ["run", "get", "all", "each", "exec"];
+
+function select(jsite: JSite, method: string) {
+    return (promises: EmitPromises) => {
+        promises.push(async (options: QueryInterface) => {
+            let callback = options.callback;
+            let complete = options.complete;
+            delete options.callback;
+            delete options.complete;
+
+            Object.keys(jsite.custom.database).forEach(driver => {
+                switch (driver) {
+                    case "mysql":
+                        switch (method) {
+                            case "run":
+                                return jsite.custom.database.mysql.query(options, (error: string) => {
+                                    if (callback) return callback(error);
+                                });
+
+                            case "get":
+                                return jsite.custom.database.mysql.query(options, (error: string, rows: any[][]) => {
+                                    if (callback) return callback(error, rows[0]);
+                                });
+
+                            case "all":
+                                return jsite.custom.database.mysql.query(options, (error: string, rows: any[][]) => {
+                                    if (callback) return callback(error, rows);
+                                });
+
+                            case "each":
+                                return jsite.custom.database.mysql.query(options, (error: string, rows: any[][]) => {
+                                    if (!error && callback) {
+                                        rows.forEach(row => {
+                                            if (callback) return callback(row);
+                                        });
+                                    }
+
+                                    if (complete) return complete(error, rows);
+                                });
+
+                            case "exec":
+                                return jsite.custom.database.mysql.query(options, (error: string) => {
+                                    if (callback) return callback(error);
+                                });
+
+                            default:
+                                throw new Error(`Unsupported MySQL method: ${method}`);
+                        }
+
+                    case "sqlite":
+                        switch (method) {
+                            case "each":
+                                return jsite.custom.database.sqlite.each(
+                                    options.sql,
+                                    options.param,
+                                    callback,
+                                    complete
+                                );
+
+                            case "exec":
+                                return jsite.custom.database.sqlite.exec(options.sql, callback);
+
+                            default:
+                                if (METHODS.includes(method)) {
+                                    return jsite.custom.database.sqlite[method](options.sql, options.param, callback);
+                                }
+
+                                throw new Error(`Unsupported SQLite method: ${method}`);
+                        }
+
+                    default:
+                        throw new Error(`Unsupported Database driver: ${driver}`);
+                }
+            });
+
+            return true;
+        });
+    };
 }
 
 function setup(jsite: JSite): JSite {
     if (!Object.prototype.hasOwnProperty.call(jsite.custom, "database")) {
         jsite.custom.database = {};
-        jsite.on("database:select", promises => {
-            promises.push(async (options: QueryInterface) => {
-                let callback = options.callback;
-                delete options.callback;
 
-                Object.keys(jsite.custom.database).forEach(driver => {
-                    switch (driver) {
-                        case "mysql":
-                            return jsite.custom.database[driver].query(options, callback);
-                    }
-                });
-
-                return options;
-            });
-        });
+        METHODS.forEach(method => jsite.on(`database:${method}`, select(jsite, method)));
     }
 
     return jsite;
