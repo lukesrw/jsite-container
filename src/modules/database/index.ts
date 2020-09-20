@@ -21,79 +21,103 @@ function select(jsite: JSite, method: string) {
             delete options.callback;
             delete options.complete;
 
-            Object.keys(jsite.custom.database).forEach(driver => {
-                switch (driver) {
-                    case "mysql":
-                        switch (method) {
-                            case "run":
-                                return jsite.custom.database.mysql.query(options, (error: string | null) => {
-                                    if (callback) return callback(error);
-                                });
-
-                            case "get":
-                                return jsite.custom.database.mysql.query(
-                                    options,
-                                    (error: string | null, rows: any[][]) => {
-                                        if (callback) return callback(error, rows[0]);
+            for (let driver in jsite.custom.database) {
+                if (typeof driver === "string") {
+                    switch (driver) {
+                        case "mysql":
+                            if (!Array.isArray(options.param) && typeof options.param === "object") {
+                                for (let param in options.param) {
+                                    if (param.startsWith(":")) {
+                                        options.param[param.substr(1)] = options.param[param];
+                                        delete options.param[param];
                                     }
-                                );
-
-                            case "all":
-                                return jsite.custom.database.mysql.query(
-                                    options,
-                                    (error: string | null, rows: any[][]) => {
-                                        if (callback) return callback(error, rows);
-                                    }
-                                );
-
-                            case "each":
-                                return jsite.custom.database.mysql.query(
-                                    options,
-                                    (error: string | null, rows: any[][]) => {
-                                        if (!error && callback) {
-                                            rows.forEach(row => {
-                                                if (callback) return callback(row);
-                                            });
-                                        }
-
-                                        if (complete) return complete(error, rows);
-                                    }
-                                );
-
-                            case "exec":
-                                return jsite.custom.database.mysql.query(options, (error: string | null) => {
-                                    if (callback) return callback(error);
-                                });
-
-                            default:
-                                throw new Error(`Unsupported MySQL method: ${method}`);
-                        }
-
-                    case "sqlite":
-                        switch (method) {
-                            case "each":
-                                return jsite.custom.database.sqlite.each(
-                                    options.sql,
-                                    options.param,
-                                    callback,
-                                    complete
-                                );
-
-                            case "exec":
-                                return jsite.custom.database.sqlite.exec(options.sql, callback);
-
-                            default:
-                                if (METHODS.includes(method)) {
-                                    return jsite.custom.database.sqlite[method](options.sql, options.param, callback);
                                 }
+                            }
 
-                                throw new Error(`Unsupported SQLite method: ${method}`);
-                        }
+                            switch (method) {
+                                case "run":
+                                    return jsite.custom.database.mysql.query(options, (error: string | null) => {
+                                        if (callback) return callback(error);
+                                    });
 
-                    default:
-                        throw new Error(`Unsupported Database driver: ${driver}`);
+                                case "get":
+                                    return jsite.custom.database.mysql.query(
+                                        options,
+                                        (error: string | null, rows: any[][]) => {
+                                            if (callback) return callback(error, rows[0]);
+                                        }
+                                    );
+
+                                case "all":
+                                    return jsite.custom.database.mysql.query(
+                                        options,
+                                        (error: string | null, rows: any[][]) => {
+                                            if (callback) return callback(error, rows);
+                                        }
+                                    );
+
+                                case "each":
+                                    return jsite.custom.database.mysql.query(
+                                        options,
+                                        (error: string | null, rows: any[][]) => {
+                                            if (!error && callback) {
+                                                rows.forEach(row => {
+                                                    if (callback) return callback(row);
+                                                });
+                                            }
+
+                                            if (complete) return complete(error, rows);
+                                        }
+                                    );
+
+                                case "exec":
+                                    return jsite.custom.database.mysql.query(options, (error: string | null) => {
+                                        if (callback) return callback(error);
+                                    });
+
+                                default:
+                                    throw new Error(`Unsupported MySQL method: ${method}`);
+                            }
+
+                        case "sqlite":
+                            if (!Array.isArray(options.param) && typeof options.param === "object") {
+                                for (let param in options.param) {
+                                    if (!param.startsWith(":")) {
+                                        options.param[`:${param}`] = options.param[param];
+                                        delete options.param[param];
+                                    }
+                                }
+                            }
+
+                            switch (method) {
+                                case "each":
+                                    return jsite.custom.database.sqlite.each(
+                                        options.sql,
+                                        options.param,
+                                        callback,
+                                        complete
+                                    );
+
+                                case "exec":
+                                    return jsite.custom.database.sqlite.exec(options.sql, callback);
+
+                                default:
+                                    if (METHODS.includes(method)) {
+                                        return jsite.custom.database.sqlite[method](
+                                            options.sql,
+                                            options.param,
+                                            callback
+                                        );
+                                    }
+
+                                    throw new Error(`Unsupported SQLite method: ${method}`);
+                            }
+
+                        default:
+                            throw new Error(`Unsupported Database driver: ${driver}`);
+                    }
                 }
-            });
+            }
 
             return true;
         });
