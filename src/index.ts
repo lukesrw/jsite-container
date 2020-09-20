@@ -148,9 +148,8 @@ export class JSite extends EventEmitter {
             let code = require(`./modules/${module[0]}/index`);
             let category = (code[module[1]]().category || "").toLowerCase();
             if (category && Object.prototype.hasOwnProperty.call(UNIQUE_CATEGORIES, category)) {
-                if (UNIQUE_CATEGORIES[category]) {
-                    return;
-                }
+                if (UNIQUE_CATEGORIES[category]) return;
+
                 UNIQUE_CATEGORIES[category] = true;
             }
 
