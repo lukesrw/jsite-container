@@ -14,9 +14,6 @@ import { Options } from "./interfaces/jsite";
 /**
  * JSite modules
  */
-import { server } from "./modules/server/index";
-import { router } from "./modules/routes/index";
-import { modules } from "./modules/modules";
 import { getAbs } from "./lib/abs";
 import { EmitPromises } from "./types/jsite";
 
@@ -34,12 +31,12 @@ const DEFAULT_OPTIONS: Options = {
 export class JSite extends EventEmitter {
     options: Options = DEFAULT_OPTIONS;
     custom: Generic.Object = {};
-    modules: Module[] = [];
+    modules: [string, string][] = [];
 
     constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
-        this.setModules(router, server, modules);
+        this.setModules(["server", "server"], ["routes", "router"], ["modules", "modules"]);
         this.setOptions(options);
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
@@ -54,17 +51,27 @@ export class JSite extends EventEmitter {
      * @param modules to load
      * @returns {this} for chaining
      */
-    setModules(...modules: Module[]) {
+    setModules(...modules: [string, string][]) {
+        modules.forEach(module => {
+            if (!Array.isArray(module)) {
+                throw new Error(`Invalid Module provided: ${JSON.stringify(module)}`);
+            }
+        });
+
         this.modules = [...new Set(modules)];
 
         return this;
     }
 
-    unsetModules(...modules: Module[]) {
-        modules.forEach(module => {
-            if (this.modules.includes(module)) {
-                this.modules.splice(this.modules.indexOf(module), 1);
-            }
+    unsetModules(...modules: [string, string][]) {
+        this.modules = this.modules.filter(set_module => {
+            return modules.some(unset_module => {
+                if (Array.isArray(unset_module)) return set_module !== unset_module;
+
+                if (typeof unset_module === "string") return set_module[0] !== unset_module;
+
+                return true;
+            });
         });
 
         return this;
@@ -153,11 +160,12 @@ export class JSite extends EventEmitter {
          * @todo review after implementing data-driven modules
          */
         this.modules.forEach(module => {
-            let category = (module().category || "").toLowerCase();
+            let code = require(`./modules/${module[0]}/index`);
+            let category = (code[module[1]]().category || "").toLowerCase();
             if (category && UNIQUE_CATEGORIES.includes(category)) {
-                modules[category] = module;
+                modules[category] = code[module[1]];
             } else {
-                this.reloadModule(module);
+                this.reloadModule(code[module[1]]);
             }
         });
         Object.values(modules).forEach(module => this.reloadModule(module));
