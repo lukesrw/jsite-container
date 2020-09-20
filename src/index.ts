@@ -8,7 +8,6 @@ import { EventEmitter } from "events";
  */
 import { PromiseSettledResult } from "./interfaces/promise";
 import * as Generic from "./interfaces/generic";
-import { Module } from "./interfaces/module";
 import { Options } from "./interfaces/jsite";
 
 /**
@@ -20,7 +19,9 @@ import { EmitPromises } from "./types/jsite";
 /**
  * Constants
  */
-const UNIQUE_CATEGORIES: string[] = [];
+const UNIQUE_CATEGORIES: {
+    [category: string]: boolean;
+} = {};
 const DEFAULT_MAX_LISTENERS = 100;
 const DEFAULT_OPTIONS: Options = {
     abs: getAbs(),
@@ -119,6 +120,7 @@ export class JSite extends EventEmitter {
                     case "rejected":
                         if (results[promises_i].reason) {
                             this.sendEmit("logger:error", results[promises_i].reason);
+                            throw new Error(results[promises_i].reason);
                         }
                         break;
 
@@ -139,36 +141,25 @@ export class JSite extends EventEmitter {
         return data;
     }
 
-    reloadModule(module: Module) {
-        try {
-            module(this);
-        } catch (error) {
-            this.sendEmit("logger:error", error);
-        }
-    }
-
     reload() {
         this.removeAllListeners();
 
-        let modules: {
-            [category: string]: Module;
-        } = {};
-
-        /**
-         * last module gets priority, could be modified to be first
-         *
-         * @todo review after implementing data-driven modules
-         */
         this.modules.forEach(module => {
             let code = require(`./modules/${module[0]}/index`);
             let category = (code[module[1]]().category || "").toLowerCase();
-            if (category && UNIQUE_CATEGORIES.includes(category)) {
-                modules[category] = code[module[1]];
-            } else {
-                this.reloadModule(code[module[1]]);
+            if (category && Object.prototype.hasOwnProperty.call(UNIQUE_CATEGORIES, category)) {
+                if (UNIQUE_CATEGORIES[category]) {
+                    return;
+                }
+                UNIQUE_CATEGORIES[category] = true;
+            }
+
+            try {
+                code[module[1]](this);
+            } catch (error) {
+                this.sendEmit("logger:error", error);
             }
         });
-        Object.values(modules).forEach(module => this.reloadModule(module));
 
         this.sendEmit("jsite:reload");
 
