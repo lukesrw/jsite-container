@@ -26,33 +26,42 @@ function select(jsite: JSite, method: string) {
                     case "mysql":
                         switch (method) {
                             case "run":
-                                return jsite.custom.database.mysql.query(options, (error: string) => {
+                                return jsite.custom.database.mysql.query(options, (error: string | null) => {
                                     if (callback) return callback(error);
                                 });
 
                             case "get":
-                                return jsite.custom.database.mysql.query(options, (error: string, rows: any[][]) => {
-                                    if (callback) return callback(error, rows[0]);
-                                });
+                                return jsite.custom.database.mysql.query(
+                                    options,
+                                    (error: string | null, rows: any[][]) => {
+                                        if (callback) return callback(error, rows[0]);
+                                    }
+                                );
 
                             case "all":
-                                return jsite.custom.database.mysql.query(options, (error: string, rows: any[][]) => {
-                                    if (callback) return callback(error, rows);
-                                });
+                                return jsite.custom.database.mysql.query(
+                                    options,
+                                    (error: string | null, rows: any[][]) => {
+                                        if (callback) return callback(error, rows);
+                                    }
+                                );
 
                             case "each":
-                                return jsite.custom.database.mysql.query(options, (error: string, rows: any[][]) => {
-                                    if (!error && callback) {
-                                        rows.forEach(row => {
-                                            if (callback) return callback(row);
-                                        });
-                                    }
+                                return jsite.custom.database.mysql.query(
+                                    options,
+                                    (error: string | null, rows: any[][]) => {
+                                        if (!error && callback) {
+                                            rows.forEach(row => {
+                                                if (callback) return callback(row);
+                                            });
+                                        }
 
-                                    if (complete) return complete(error, rows);
-                                });
+                                        if (complete) return complete(error, rows);
+                                    }
+                                );
 
                             case "exec":
-                                return jsite.custom.database.mysql.query(options, (error: string) => {
+                                return jsite.custom.database.mysql.query(options, (error: string | null) => {
                                     if (callback) return callback(error);
                                 });
 
