@@ -10,7 +10,7 @@ import { join } from "path";
  */
 import { PromiseSettledResult } from "./interfaces/promise";
 import * as Generic from "./interfaces/generic";
-import { Options } from "./interfaces/jsite";
+import { Options, OptionsInput } from "./interfaces/jsite";
 
 /**
  * JSite modules
@@ -37,7 +37,7 @@ export class JSite extends EventEmitter {
     custom: Generic.Object = {};
     modules: [string, string][] = [];
 
-    constructor(options: Options = DEFAULT_OPTIONS) {
+    constructor(options: OptionsInput = DEFAULT_OPTIONS) {
         super();
 
         this.setModules(["logger", "logger"], ["server", "server"], ["routes", "router"], ["modules", "modules"]);
@@ -45,7 +45,7 @@ export class JSite extends EventEmitter {
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
 
-    setOptions(options: Options) {
+    setOptions(options: OptionsInput) {
         this.options = Object.assign(DEFAULT_OPTIONS, options);
     }
 

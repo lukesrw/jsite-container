@@ -6,5 +6,14 @@ export interface Options {
     modules: {
         [module: string]: Generic.Object;
     };
-    production: boolean;
+    production?: boolean;
+}
+
+export interface OptionsInput {
+    [name: string]: any;
+    abs?: string;
+    modules?: {
+        [module: string]: Generic.Object;
+    };
+    production?: boolean;
 }
