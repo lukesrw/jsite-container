@@ -1,8 +1,9 @@
-import { JSite } from "../..";
+import { JSite } from "../../../../index";
+
 import * as path from "path";
-import { ModuleInfo } from "../../interfaces/module";
-import * as Generic from "../../interfaces/generic";
-import { EmitPromises } from "../../types/jsite";
+import { ModuleInfo } from "../../../../interfaces/module";
+import * as Generic from "../../../../interfaces/generic";
+import { EmitPromises } from "../../../../types/jsite";
 
 interface QueryInterface {
     sql: string;
@@ -138,7 +139,7 @@ export function mysql(jsite?: JSite): ModuleInfo {
     if (jsite) {
         setup(jsite).on("jsite:reload", promises => {
             promises.push(async () => {
-                const mysql = require("mysql2");
+                const mysql = require("mysql2/promise");
 
                 jsite.custom.database.mysql = mysql.createPool(
                     Object.assign(

@@ -7,15 +7,15 @@ import { join } from "path";
 /**
  * NPM packages
  */
-import { JSite } from "../..";
+import { JSite } from "../../../../index";
 import { url as parseURL } from "jsite-parse";
 const { lookup } = require("mime-types");
 
 /**
  * Interfaces
  */
-import { ModuleInfo } from "../../interfaces/module";
-import { RequestResponse } from "../../interfaces/net";
+import { ModuleInfo } from "../../../../interfaces/module";
+import { RequestResponse } from "../../../../interfaces/net";
 import { Rule } from "./interfaces";
 
 /**

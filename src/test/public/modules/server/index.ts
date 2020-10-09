@@ -7,15 +7,15 @@ import * as zlib from "zlib";
 /**
  * Npm packages
  */
-import { JSite } from "../..";
+import { JSite } from "../../../../index";
 import * as status from "http-status";
 import { request as parseRequest, url as parseURL } from "jsite-parse";
 
 /**
  * Interfaces
  */
-import { RequestResponse } from "../../interfaces/net";
-import { ModuleInfo } from "../../interfaces/module";
+import { RequestResponse } from "../../../../interfaces/net";
+import { ModuleInfo } from "../../../../interfaces/module";
 import { Url } from "url";
 import { Readable } from "stream";
 

@@ -7,12 +7,12 @@ import { join } from "path";
 /**
  * Npm packages
  */
-import { JSite } from "../..";
+import { JSite } from "../../../../index";
 
 /**
  * Interfaces
  */
-import { ModuleInfo } from "../../interfaces/module";
+import { ModuleInfo } from "../../../../interfaces/module";
 
 async function write(directory: string, file: string, content: string | Error, heading: string) {
     try {
