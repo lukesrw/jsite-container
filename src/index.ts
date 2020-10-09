@@ -2,6 +2,8 @@
  * Node.js modules
  */
 import { EventEmitter } from "events";
+import { promises } from "fs";
+import { join } from "path";
 
 /**
  * Interfaces
@@ -15,6 +17,7 @@ import { Options } from "./interfaces/jsite";
  */
 import { getAbs } from "./lib/abs";
 import { EmitPromises } from "./types/jsite";
+import { forEachAsync } from "./lib/array";
 
 /**
  * Constants
@@ -37,7 +40,7 @@ export class JSite extends EventEmitter {
     constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
-        this.setModules(["server", "server"], ["routes", "router"], ["modules", "modules"]);
+        this.setModules(["logger", "logger"], ["server", "server"], ["routes", "router"], ["modules", "modules"]);
         this.setOptions(options);
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
@@ -141,21 +144,31 @@ export class JSite extends EventEmitter {
         return data;
     }
 
-    reload() {
+    async reload() {
         this.removeAllListeners();
 
-        this.modules.forEach(module => {
-            let code = require(`./modules/${module[0]}/index`);
-            let category = (code[module[1]]().category || "").toLowerCase();
-            if (category && Object.prototype.hasOwnProperty.call(UNIQUE_CATEGORIES, category)) {
-                if (UNIQUE_CATEGORIES[category]) return;
-
-                UNIQUE_CATEGORIES[category] = true;
-            }
+        await forEachAsync(this.modules, async (_1, mod_i) => {
+            this.modules[mod_i][0] = join(this.options.abs, "public", "modules", this.modules[mod_i][0], "index.js");
 
             try {
-                code[module[1]](this);
+                console.log(this.modules[mod_i]);
+                await promises.stat(this.modules[mod_i][0]);
+
+                let { [this.modules[mod_i][1]]: code } = require(this.modules[mod_i][0]);
+                let category = (code().category || "").toLowerCase();
+                if (category && Object.prototype.hasOwnProperty.call(UNIQUE_CATEGORIES, category)) {
+                    if (UNIQUE_CATEGORIES[category]) return;
+
+                    UNIQUE_CATEGORIES[category] = true;
+                }
+
+                try {
+                    code(this);
+                } catch (error) {
+                    this.sendEmit("logger:error", error);
+                }
             } catch (error) {
+                console.log(error);
                 this.sendEmit("logger:error", error);
             }
         });
@@ -165,8 +178,8 @@ export class JSite extends EventEmitter {
         return this;
     }
 
-    start() {
-        this.reload();
+    async start() {
+        await this.reload();
 
         this.sendEmit("jsite:start");
 
