@@ -151,7 +151,6 @@ export class JSite extends EventEmitter {
             this.modules[mod_i][0] = join(this.options.abs, "public", "modules", this.modules[mod_i][0], "index.js");
 
             try {
-                console.log(this.modules[mod_i]);
                 await promises.stat(this.modules[mod_i][0]);
 
                 let { [this.modules[mod_i][1]]: code } = require(this.modules[mod_i][0]);
@@ -168,7 +167,6 @@ export class JSite extends EventEmitter {
                     this.sendEmit("logger:error", error);
                 }
             } catch (error) {
-                console.log(error);
                 this.sendEmit("logger:error", error);
             }
         });
