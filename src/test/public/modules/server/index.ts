@@ -25,10 +25,17 @@ const DEFAULT_RESPONSE_DATA = `<!DOCTYPE html>
         <meta charset="UTF-8">
 
         <style>
-            html,
+            * {
+                margin: 0;
+            }
+
             body {
+                background: #FA4;
+                color: #FFF;
                 font-family: Consolas, Menlo, Monaco, Lucida Console, Liberation Mono, DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace, serif;
-                margin: 20px 23px;
+                font-size: 2vw;
+                margin: 8vw 8.4vw;
+                text-shadow: 0.4vw 0 0 rgba(0, 0, 0, 0.1);
             }
         </style>
     </head>
@@ -39,7 +46,7 @@ export function server(jsite?: JSite): ModuleInfo {
     if (jsite) {
         jsite.on("jsite:start", promises => {
             promises.push(async () => {
-                jsite.custom.server = createServer();
+                jsite.custom.server = createServer(jsite.getOption("modules", "server", "options"));
 
                 jsite.custom.server.on("request", async (request: any, response: ServerResponse) => {
                     try {
