@@ -148,7 +148,7 @@ export function mysql(jsite?: JSite): ModuleInfo {
                             password: "",
                             user: "root"
                         },
-                        jsite.options.modules.database.mysql
+                        jsite.getOption("modules", "database", "mysql")
                     )
                 );
             });

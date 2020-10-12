@@ -26,7 +26,7 @@ const INDEX_FILES = ["index.js", "index.html"];
 function getFile(jsite: JSite, handle: any) {
     handle.request.url.pathname = handle.request.url.pathname || "/";
 
-    return join(jsite.options.abs, "public", ...handle.request.url.pathname.split("/")).replace(/\\/gu, "/");
+    return join(jsite.getOption("abs"), "public", ...handle.request.url.pathname.split("/")).replace(/\\/gu, "/");
 }
 
 export function index(jsite?: JSite): ModuleInfo {
@@ -66,7 +66,7 @@ export function index(jsite?: JSite): ModuleInfo {
 
                                 if (files.includes("index.json")) {
                                     target = join(
-                                        jsite.options.abs,
+                                        jsite.getOption("abs"),
                                         "public",
                                         ...handle.request.url.pathname.split("/"),
                                         "index.json"
@@ -164,7 +164,7 @@ export function router(jsite?: JSite): ModuleInfo {
                 async (handle: RequestResponse): Promise<RequestResponse> => {
                     let file = getFile(jsite, handle);
                     if (handle.response.route.includes(file)) {
-                        if (!jsite.options.production) {
+                        if (!jsite.getOption("production")) {
                             let in_submenu = false;
 
                             handle.response.status = "LOOP_DETECTED";

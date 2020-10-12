@@ -61,13 +61,13 @@ export function logger(jsite?: JSite): ModuleInfo {
     if (jsite) {
         jsite.on("logger:error", chain => {
             chain.push(async (error: any) => {
-                await write(join(jsite.options.abs, "logs"), "error.md", error, "Error");
+                await write(join(jsite.getOption("abs"), "logs"), "error.md", error, "Error");
             });
         });
 
         jsite.on("logger:warning", chain => {
             chain.push(async (error: any) => {
-                await write(join(jsite.options.abs, "logs"), "warning.md", error, "Error");
+                await write(join(jsite.getOption("abs"), "logs"), "warning.md", error, "Error");
             });
         });
     }
