@@ -10,6 +10,7 @@ interface QueryInterface {
     param?: Generic.Object | any[];
     callback?: Function;
     complete?: Function;
+    results?: any[];
 }
 
 const METHODS = ["run", "get", "all", "each", "exec"];
@@ -37,25 +38,19 @@ function select(jsite: JSite, method: string) {
 
                             switch (method) {
                                 case "run":
-                                    return jsite.custom.database.mysql.query(options, (error: string | null) => {
-                                        if (callback) return callback(error);
-                                    });
+                                    await jsite.custom.database.mysql.query(options);
+                                    break;
 
                                 case "get":
-                                    return jsite.custom.database.mysql.query(
-                                        options,
-                                        (error: string | null, rows: any[][]) => {
-                                            if (callback) return callback(error, rows[0]);
-                                        }
-                                    );
+                                    options.results = await jsite.custom.database.mysql.query(options);
+                                    options.results = (options.results || [])[0];
+                                    break;
 
                                 case "all":
-                                    return jsite.custom.database.mysql.query(
-                                        options,
-                                        (error: string | null, rows: any[][]) => {
-                                            if (callback) return callback(error, rows);
-                                        }
-                                    );
+                                    options.results = await jsite.custom.database.mysql.query(options);
+
+                                    if (options.results) options.results = options.results[0];
+                                    break;
 
                                 case "each":
                                     return jsite.custom.database.mysql.query(
@@ -72,13 +67,14 @@ function select(jsite: JSite, method: string) {
                                     );
 
                                 case "exec":
-                                    return jsite.custom.database.mysql.query(options, (error: string | null) => {
-                                        if (callback) return callback(error);
-                                    });
+                                    await jsite.custom.database.mysql.query(options);
+                                    break;
 
                                 default:
                                     throw new Error(`Unsupported MySQL method: ${method}`);
                             }
+
+                            return options;
 
                         case "sqlite":
                             if (!Array.isArray(options.param) && typeof options.param === "object") {
