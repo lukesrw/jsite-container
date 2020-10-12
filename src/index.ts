@@ -144,16 +144,30 @@ export class JSite extends EventEmitter {
         return data;
     }
 
+    getOption(...property: string[]) {
+        let value;
+        for (let i = 0; i < property.length; i += 1) {
+            if (Object.prototype.hasOwnProperty.call(this.options, property[i])) {
+                value = this.options[property[i]];
+            } else {
+                value = undefined;
+                break;
+            }
+        }
+
+        return value;
+    }
+
     async reload() {
         this.removeAllListeners();
 
-        await forEachAsync(this.modules, async (_1, mod_i) => {
-            this.modules[mod_i][0] = join(this.options.abs, "public", "modules", this.modules[mod_i][0], "index.js");
+        await forEachAsync(this.modules, async (_1, i) => {
+            this.modules[i][0] = join(this.getOption("abs"), "public", "modules", this.modules[i][0], "index.js");
 
             try {
-                await promises.stat(this.modules[mod_i][0]);
+                await promises.stat(this.modules[i][0]);
 
-                let { [this.modules[mod_i][1]]: code } = require(this.modules[mod_i][0]);
+                let { [this.modules[i][1]]: code } = require(this.modules[i][0]);
                 let category = (code().category || "").toLowerCase();
                 if (category && Object.prototype.hasOwnProperty.call(UNIQUE_CATEGORIES, category)) {
                     if (UNIQUE_CATEGORIES[category]) return;
@@ -186,7 +200,7 @@ export class JSite extends EventEmitter {
 
     clearRequireCache() {
         for (const file in require.cache) {
-            if (Object.prototype.hasOwnProperty.call(require.cache, file) && file.startsWith(this.options.abs)) {
+            if (Object.prototype.hasOwnProperty.call(require.cache, file) && file.startsWith(this.getOption("abs"))) {
                 delete require.cache[require.resolve(file)];
             }
         }
