@@ -86,8 +86,11 @@ export function server(jsite?: JSite): ModuleInfo {
     </body>
 </html>`;
                     }
+
+                    if (typeof handle.response.data === "undefined") handle.response.data = "";
+
                     if (typeof handle.response.data !== "string" && typeof handle.response.data.pipe !== "function") {
-                        handle.response.data = JSON.stringify(handle.response.data);
+                        handle.response.data = JSON.stringify(handle.response.data || "");
                         handle.response.headers["Content-Type"] = "application/json; charset=utf-8";
                     }
                     if (typeof handle.response.data === "string") {
