@@ -145,10 +145,10 @@ export class JSite extends EventEmitter {
     }
 
     getOption(...property: string[]) {
-        let value;
+        let value: any = this.options;
         for (let i = 0; i < property.length; i += 1) {
-            if (Object.prototype.hasOwnProperty.call(this.options, property[i])) {
-                value = this.options[property[i]];
+            if (Object.prototype.hasOwnProperty.call(value, property[i])) {
+                value = value[property[i]];
             } else {
                 value = undefined;
                 break;
@@ -162,7 +162,10 @@ export class JSite extends EventEmitter {
         this.removeAllListeners();
 
         await forEachAsync(this.modules, async (_1, i) => {
-            this.modules[i][0] = join(this.getOption("abs"), "public", "modules", this.modules[i][0], "index.js");
+            let abs = this.getOption("abs");
+            if (!this.modules[i][0].startsWith(abs)) {
+                this.modules[i][0] = join(abs, "public", "modules", this.modules[i][0], "index.js");
+            }
 
             try {
                 await promises.stat(this.modules[i][0]);
