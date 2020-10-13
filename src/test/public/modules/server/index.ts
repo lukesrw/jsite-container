@@ -44,9 +44,9 @@ const DEFAULT_RESPONSE_DATA = `<!DOCTYPE html>
 
 export function server(jsite?: JSite): ModuleInfo {
     if (jsite) {
-        jsite.on("jsite:start", promises => {
+        jsite.on("jsite:reload", promises => {
             promises.push(async () => {
-                jsite.custom.server = createServer(jsite.getOption("modules", "server", "options"));
+                jsite.custom.server = createServer(jsite.getOption(["modules", "server", "options"], {}));
 
                 jsite.custom.server.on("request", async (request: any, response: ServerResponse) => {
                     try {
