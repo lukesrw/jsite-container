@@ -41,7 +41,7 @@ export class JSite extends EventEmitter {
         super();
 
         this.setOptions(options);
-        this.setModules(...this.getOption([], "modules"));
+        this.setModules(...this.getOption("modules", []));
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
 
@@ -144,10 +144,12 @@ export class JSite extends EventEmitter {
         return data;
     }
 
-    getOption<ValueType>(fallback: ValueType, ...property: string[]): ValueType {
+    getOption<ValueType>(property: string | string[], fallback?: ValueType): ValueType {
         let value: any;
 
-        if (property.length > 0) {
+        if (typeof property === "string") property = [property];
+
+        if (Array.isArray(property) && property.length > 0) {
             value = this.options;
             for (let i = 0; i < property.length; i += 1) {
                 if (Object.prototype.hasOwnProperty.call(value, property[i])) {
@@ -163,11 +165,18 @@ export class JSite extends EventEmitter {
     }
 
     async reload() {
+        /**
+         * Should I emit a jsite:shutdown or similar so that modules can un-load?
+         * For example in for a server, it could stop listening to a port, for example
+         *
+         * @todo consider shutdown
+         */
+
         this.removeAllListeners();
         this.custom = {};
 
         await forEachAsync(this.modules, async (_1, i) => {
-            let abs = this.getOption(DEFAULT_OPTIONS.abs, "abs");
+            let abs = this.getOption("abs", DEFAULT_OPTIONS.abs);
             if (!this.modules[i][0].startsWith(abs)) {
                 this.modules[i][0] = join(abs, "public", "modules", this.modules[i][0], "index.js");
             }
@@ -210,7 +219,7 @@ export class JSite extends EventEmitter {
         for (const file in require.cache) {
             if (
                 Object.prototype.hasOwnProperty.call(require.cache, file) &&
-                file.startsWith(this.getOption(DEFAULT_OPTIONS.abs, "abs"))
+                file.startsWith(this.getOption("abs", DEFAULT_OPTIONS.abs))
             ) {
                 delete require.cache[require.resolve(file)];
             }
