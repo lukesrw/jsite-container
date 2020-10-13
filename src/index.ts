@@ -10,7 +10,7 @@ import { join } from "path";
  */
 import { PromiseSettledResult } from "./interfaces/promise";
 import * as Generic from "./interfaces/generic";
-import { Options, OptionsInput } from "./interfaces/jsite";
+import { Options } from "./interfaces/jsite";
 
 /**
  * JSite modules
@@ -26,9 +26,9 @@ const UNIQUE_CATEGORIES: {
     [category: string]: boolean;
 } = {};
 const DEFAULT_MAX_LISTENERS = 100;
-const DEFAULT_OPTIONS: Options = {
+const DEFAULT_OPTIONS = {
     abs: getAbs(),
-    modules: {},
+    custom: {},
     production: true
 };
 
@@ -37,15 +37,15 @@ export class JSite extends EventEmitter {
     custom: Generic.Object = {};
     modules: [string, string][] = [];
 
-    constructor(options: OptionsInput = DEFAULT_OPTIONS) {
+    constructor(options: Options = DEFAULT_OPTIONS) {
         super();
 
-        this.setModules(["logger", "logger"], ["server", "server"], ["routes", "router"], ["modules", "modules"]);
         this.setOptions(options);
+        this.setModules(...this.getOption([], "modules"));
         this.setMaxListeners(DEFAULT_MAX_LISTENERS);
     }
 
-    setOptions(options: OptionsInput) {
+    setOptions(options: Options) {
         this.options = Object.assign(DEFAULT_OPTIONS, options);
     }
 
@@ -144,18 +144,22 @@ export class JSite extends EventEmitter {
         return data;
     }
 
-    getOption(...property: string[]) {
-        let value: any = this.options;
-        for (let i = 0; i < property.length; i += 1) {
-            if (Object.prototype.hasOwnProperty.call(value, property[i])) {
-                value = value[property[i]];
-            } else {
-                value = undefined;
-                break;
+    getOption<ValueType>(fallback: ValueType, ...property: string[]): ValueType {
+        let value: any;
+
+        if (property.length > 0) {
+            value = this.options;
+            for (let i = 0; i < property.length; i += 1) {
+                if (Object.prototype.hasOwnProperty.call(value, property[i])) {
+                    value = value[property[i]];
+                } else {
+                    value = undefined;
+                    break;
+                }
             }
         }
 
-        return value;
+        return typeof value === "undefined" ? fallback : value;
     }
 
     async reload() {
@@ -163,7 +167,7 @@ export class JSite extends EventEmitter {
         this.custom = {};
 
         await forEachAsync(this.modules, async (_1, i) => {
-            let abs = this.getOption("abs");
+            let abs = this.getOption(DEFAULT_OPTIONS.abs, "abs");
             if (!this.modules[i][0].startsWith(abs)) {
                 this.modules[i][0] = join(abs, "public", "modules", this.modules[i][0], "index.js");
             }
@@ -204,7 +208,10 @@ export class JSite extends EventEmitter {
 
     clearRequireCache() {
         for (const file in require.cache) {
-            if (Object.prototype.hasOwnProperty.call(require.cache, file) && file.startsWith(this.getOption("abs"))) {
+            if (
+                Object.prototype.hasOwnProperty.call(require.cache, file) &&
+                file.startsWith(this.getOption(DEFAULT_OPTIONS.abs, "abs"))
+            ) {
                 delete require.cache[require.resolve(file)];
             }
         }
