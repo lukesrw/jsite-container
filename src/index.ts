@@ -160,6 +160,7 @@ export class JSite extends EventEmitter {
 
     async reload() {
         this.removeAllListeners();
+        this.custom = {};
 
         await forEachAsync(this.modules, async (_1, i) => {
             let abs = this.getOption("abs");
