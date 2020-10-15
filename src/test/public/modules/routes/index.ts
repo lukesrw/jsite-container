@@ -223,7 +223,14 @@ export function router(jsite?: JSite): ModuleInfo {
                                 try {
                                     jsite.clearRequireCache();
                                     handle_custom = require(file);
-                                } catch (ignore) {}
+                                } catch (error) {
+                                    console.error(error);
+
+                                    handle.response.status = "INTERNAL_SERVER_ERROR";
+                                    handle.response.data += `<pre>${error.message}</pre>`;
+
+                                    return handle;
+                                }
                             }
 
                             if (
@@ -246,7 +253,10 @@ export function router(jsite?: JSite): ModuleInfo {
                                         };
                                     }
 
-                                    if (Object.prototype.hasOwnProperty.call(handle_custom, "data")) {
+                                    if (
+                                        typeof handle_custom === "object" &&
+                                        Object.prototype.hasOwnProperty.call(handle_custom, "data")
+                                    ) {
                                         handle.response.status = "OK";
                                     }
 
