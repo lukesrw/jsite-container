@@ -165,12 +165,7 @@ export class JSite extends EventEmitter {
     }
 
     async reload() {
-        /**
-         * Should I emit a jsite:shutdown or similar so that modules can un-load?
-         * For example in for a server, it could stop listening to a port, for example
-         *
-         * @todo consider shutdown
-         */
+        await this.sendEmit("jsite:unload");
 
         this.removeAllListeners();
         this.custom = {};
