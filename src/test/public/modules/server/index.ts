@@ -19,6 +19,7 @@ import { ModuleInfo } from "../../../../interfaces/module";
 import { Url } from "url";
 import { Readable } from "stream";
 
+const DEFAULT_PORT = 3000;
 const DEFAULT_RESPONSE_DATA = `<!DOCTYPE html>
 <html>
     <head>
@@ -46,7 +47,7 @@ export function server(jsite?: JSite): ModuleInfo {
     if (jsite) {
         jsite.on("jsite:reload", promises => {
             promises.push(async () => {
-                jsite.custom.server = createServer(jsite.getOption(["modules", "server", "options"], {}));
+                jsite.custom.server = createServer(jsite.getOption(["custom", "server", "options"], {}));
 
                 jsite.custom.server.on("request", async (request: any, response: ServerResponse) => {
                     try {
@@ -138,12 +139,16 @@ export function server(jsite?: JSite): ModuleInfo {
                     }
                 });
 
-                jsite.custom.server.listen({
-                    port: 3000
-                });
+                jsite.custom.server.listen(jsite.getOption(["custom", "server", "listen"], DEFAULT_PORT));
 
                 return jsite;
             });
+        });
+
+        jsite.on("jsite:unload", () => {
+            if (Object.prototype.hasOwnProperty.call(jsite.custom, "server") && jsite.custom.server) {
+                jsite.custom.server.close();
+            }
         });
     }
 
