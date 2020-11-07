@@ -93,6 +93,8 @@ export class JSite extends EventEmitter {
          */
         this.emit(event, promises);
 
+        if (promises.length === 0) return false;
+
         /**
          * While we've got promises to execute (and the last loop was successful),
          *
@@ -173,7 +175,7 @@ export class JSite extends EventEmitter {
         await forEachAsync(this.modules, async (_1, i) => {
             let abs = this.getOption("abs", DEFAULT_OPTIONS.abs);
             if (!this.modules[i][0].startsWith(abs)) {
-                this.modules[i][0] = join(abs, "public", "modules", this.modules[i][0], "index.js");
+                this.modules[i][0] = join(abs, "modules", this.modules[i][0], "index.js");
             }
 
             try {
@@ -190,10 +192,14 @@ export class JSite extends EventEmitter {
                 try {
                     code(this);
                 } catch (error) {
-                    this.sendEmit("logger:error", error);
+                    if (!(await this.sendEmit("logger:error", error))) {
+                        console.log(error);
+                    }
                 }
             } catch (error) {
-                this.sendEmit("logger:error", error);
+                if (!(await this.sendEmit("logger:error", error))) {
+                    console.log(error);
+                }
             }
         });
 
@@ -221,3 +227,5 @@ export class JSite extends EventEmitter {
         }
     }
 }
+
+export * from "./interfaces/module";
