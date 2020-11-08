@@ -1,13 +1,12 @@
 import { join } from "path";
 
-export function getAbs(depth: number = 3): string {
-    return join(
-        (Error().stack || "")
-            .split("\n")
-            .map(line => {
-                return line.substring(line.lastIndexOf(" ") + 2, line.lastIndexOf(":", line.lastIndexOf(":") - 1));
-            })
-            .filter(line => !line.startsWith("internal"))[depth],
-        ".."
-    );
+const DEFAULT_DEPTH = 3;
+
+export function getAbs(depth: number = DEFAULT_DEPTH): string {
+    let abs = (Error().stack || "")
+        .split("\n")
+        .filter(text => !/\(internal\/|\/pm2\//u.test(text))
+        [depth].trim();
+
+    return join(abs.substring(abs.lastIndexOf(" ") + 2, abs.indexOf(":")), "..");
 }
