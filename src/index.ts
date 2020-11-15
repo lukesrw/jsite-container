@@ -18,6 +18,7 @@ import { Options } from "./interfaces/jsite";
 import { getAbs } from "./lib/abs";
 import { EmitPromises } from "./types/jsite";
 import { forEachAsync } from "./lib/array";
+import { traverse } from "./lib/traverse";
 
 /**
  * Constants
@@ -30,6 +31,10 @@ const DEFAULT_OPTIONS = {
     abs: getAbs(),
     custom: {},
     production: true
+};
+
+export const utils = {
+    traverse
 };
 
 export class JSite extends EventEmitter {
@@ -146,24 +151,8 @@ export class JSite extends EventEmitter {
         return data;
     }
 
-    getOption<ValueType>(property: string | string[], fallback?: ValueType): ValueType {
-        let value: any;
-
-        if (typeof property === "string") property = [property];
-
-        if (Array.isArray(property) && property.length > 0) {
-            value = this.options;
-            for (let i = 0; i < property.length; i += 1) {
-                if (Object.prototype.hasOwnProperty.call(value, property[i])) {
-                    value = value[property[i]];
-                } else {
-                    value = undefined;
-                    break;
-                }
-            }
-        }
-
-        return typeof value === "undefined" ? fallback : value;
+    getOption<ValueType>(property: string | string[], fallback: ValueType): ValueType {
+        return traverse(this.options, property, fallback);
     }
 
     async reload() {
