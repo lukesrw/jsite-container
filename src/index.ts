@@ -152,7 +152,7 @@ export class JSite extends EventEmitter {
     }
 
     getOption<ValueType>(property: string | string[], fallback: ValueType): ValueType {
-        return traverse(this.options, property, fallback);
+        return JSON.parse(JSON.stringify(traverse(this.options, property, fallback)));
     }
 
     async reload() {
